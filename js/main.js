@@ -23,7 +23,7 @@
     const ox = (vw - 1440 * S) / 2, oy = (vh - 900 * S) / 2;
     stage.style.transform = `translate3d(${ox}px,${oy}px,0) scale(${S})`;
     VH = vh;
-    spacer.style.height = (END + 1) * vh + 'px';
+    spacer.style.height = (LAST + 1) * vh + 'px';
   }
 
   /* ---------- páginas ---------- */
@@ -50,6 +50,15 @@
     pages[pi].appendChild(d);
     EL.push({ d, mode, t0, t1, p: -1, rot: o.rot || 0 });
   }
+  // imagen suelta (texto/logo que no está en la capa de tinta)
+  function addImg(pi, src, x, y, w, h, mode, t0, t1, o = {}) {
+    const d = document.createElement('div');
+    d.className = 'el';
+    Object.assign(d.style, { left: x + 'px', top: y + 'px', width: w + 'px', height: h + 'px',
+      backgroundImage: `url(assets/${src})`, backgroundSize: '100% 100%', opacity: 0 });
+    pages[pi].appendChild(d);
+    EL.push({ d, mode, t0, t1, p: -1, rot: o.rot || 0 });
+  }
   const LN = window.LINES;
   const lines = (pi, key, start, step, dur) =>
     LN[key].forEach((l, i) => add(pi, 'ink', [l[0], l[1], l[2] - l[0], l[3] - l[1]], 'wipe', start + step * i, start + step * i + dur));
@@ -62,11 +71,15 @@
   add(1, 'ink', [314, 701, 208, 172], 'wipe', 5.7, 6.3);
   add(1, 'ink', [520, 712, 146, 110], 'pop', 6.2, 6.5, { rot: 10 });
   add(1, 'ink', [1058, 540, 288, 250], 'wipe', 6.4, 7.3);
-  /* 3 · ORT / Laika / Segunda abanderada */
+  /* 3 · ORT / Laika / Segunda abanderada / ITBA */
+  const ITX = 156, ITY = 712, LGX = 1163, LGY = 797, LGW = 270, LGH = 96;
   add(2, 'ink', [116, 16, 180, 104], 'fade', 8.9, 9.4);
   lines(2, 4, 9.2, 0.33, 0.45);
   add(2, 'pol', [804, 75, 556, 601], 'pop', 11.5, 12.3, { rot: 2.5 });
-  add(2, 'ink', [204, 820, 198, 22], 'wipe', 12.3, 12.7);
+  addImg(2, 'itba_t1.webp', ITX, ITY, 927, 63, 'wipe', 11.6, 12.05);
+  addImg(2, 'itba_t2.webp', ITX, ITY + 63, 927, 72, 'wipe', 11.95, 12.5);
+  addImg(2, 'itba_logo.webp', LGX, LGY, LGW, LGH, 'fade', 12.3, 12.9);
+  add(2, 'ink', [204, 820, 198, 22], 'wipe', 12.4, 12.75);
   add(2, 'ink', [686, 762, 60, 84], 'fade', 12.6, 13.0);
   add(2, 'ink', [1068, 749, 66, 96], 'fade', 12.7, 13.1);
   /* 4 · adolescencia */
@@ -236,6 +249,7 @@
   let U = 0;
   const S0 = 0.62;                                 // tamaño del libro entero
   const X0 = 24.9, X1 = 26.1, X2 = 27.5, X3 = 28.7; // cierre: aleja → se cierra la contratapa desde la derecha → acerca
+  const LAST = X0 * K + 0.5;                       // máximo scroll (el cierre se dispara pasando X0*K + 0.2)
   function render(u) {
     U = u;
     // ---- cámara y libro ----
@@ -252,7 +266,7 @@
       if (u >= X2 * K) { sc = S0 + (1 - S0) * zin2; cx = 720; }
     } else if (u >= 1.6 * K) { sc = S0 + (1 - S0) * zin; cx = 720 * zin; }
     world.style.transform = `translate3d(${720 - cx * sc}px,${450 - 450 * sc}px,0) scale(${sc})`;
-    const tilt = 1 - ease(sr(u, 0.6, 2.9)), tilt2 = zout * (1 - zin2);
+    const tilt = 0, tilt2 = zout * (1 - zin2);
     book.style.transform = `rotateX(${9 * (tilt + tilt2)}deg) rotateY(${-15 * tilt + 15 * tilt2}deg)`;
     // tapa
     const fin = u >= X0 * K;
@@ -287,6 +301,52 @@
   }
   const carOpacityOk = u => u > (4.6 + OFF) * K && u < (8.8 + OFF) * K;
 
+  /* ---------- inicio y final automáticos ----------
+     El scroll solo "dispara" la apertura y el cierre del libro: una vez que arrancan
+     corren completos (con el scroll bloqueado) y no se pueden frenar a la mitad.
+     La parte del medio (las hojas) sigue dependiendo del scroll. */
+  const A = 2.9 * K;                  // fin de la apertura (libro abierto y encuadrado)
+  const R = X0 * K;                   // fin de la lectura (arranca el cierre)
+  const UEND = (X3 + 0.7) * K;        // fin del cierre (formulario visible)
+  const SPD = 1.6;                    // segundos por unidad de u
+  let mode = 'start', uCur = 0, anim = null;
+  try { history.scrollRestoration = 'manual'; } catch (_) { }
+  function play(from, to, after) {
+    anim = { from, to, t0: performance.now(), dur: Math.abs(to - from) * SPD * 1000, y: scrollY, after };
+    mode = 'anim';
+  }
+  const jump = y => scrollTo({ top: y, behavior: 'instant' });
+  function drive(now) {
+    if (mode === 'anim') {
+      const p = clamp((now - anim.t0) / anim.dur);
+      uCur = anim.from + (anim.to - anim.from) * p;
+      if (scrollY !== anim.y) jump(anim.y);              // por si arrastran la barra
+      if (p >= 1) { const f = anim.after; anim = null; f(); }
+    } else {
+      const s = scrollY / VH;
+      if (mode === 'start') {
+        uCur = 0;
+        if (s > 0.01) play(0, A, () => { mode = 'read'; uCur = A; jump(A * VH); });
+      } else if (mode === 'read') {
+        uCur = clamp(s, A, R);
+        if (s < A - 0.06) play(uCur, 0, () => { mode = 'start'; uCur = 0; jump(0); });
+        else if (s > R + 0.2) play(R, UEND, () => { mode = 'end'; uCur = UEND; jump(LAST * VH); });
+      } else if (mode === 'end') {
+        uCur = UEND;
+        if (s < LAST - 0.2) play(UEND, R, () => { mode = 'read'; uCur = R; jump(R * VH); });
+      }
+    }
+    render(uCur);
+  }
+  // mientras corre la animación no se puede mover el scroll
+  const locked = () => mode === 'anim';
+  addEventListener('wheel', e => { if (locked()) e.preventDefault(); }, { passive: false });
+  addEventListener('touchmove', e => { if (locked()) e.preventDefault(); }, { passive: false });
+  addEventListener('keydown', e => {
+    if (!locked()) return;
+    if (['ArrowDown', 'ArrowUp', 'PageDown', 'PageUp', 'Home', 'End', ' ', 'Spacebar'].includes(e.key)) e.preventDefault();
+  });
+
   /* ---------- bucle ---------- */
   let last = performance.now();
   function frame(now) {
@@ -301,12 +361,12 @@
     hov += (hovT - hov) * (1 - Math.exp(-dt * 14));
     const o = hov * omaFade;
     blue.forEach(b => b.style.opacity = o);
-    render(scrollY / VH);
+    drive(now);
     requestAnimationFrame(frame);
   }
 
   addEventListener('resize', fit);
   fit();
   requestAnimationFrame(frame);
-  window.__render = render; window.__END = END;
+  window.__render = render; window.__END = END; window.__st = () => ({ mode, u: uCur });
 })();
