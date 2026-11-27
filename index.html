@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Melina Kenigsberg</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="vp">
+  <div id="stage">
+    <div id="world"><div id="floor"></div><div id="persp"><div id="book">
+      <div class="slab s3"></div><div class="slab s2"></div><div class="slab s1"></div>
+      <div id="pages">
+        <div id="strip"></div>
+        <div id="shade"></div>
+        <div id="cast1" class="cast"></div>
+        <div id="cast2" class="cast"></div>
+      </div>
+
+      <!-- tapa -->
+      <div id="cover" class="flap">
+        <div class="face" style="background-image:url(assets/cover.webp)"></div>
+        <div class="face inside"></div>
+        <div class="dark"></div>
+        <div class="thick"></div>
+      </div>
+
+      <!-- contratapa -->
+      <div id="back" class="flap">
+        <div class="face" style="background-image:url(assets/back.webp)"></div>
+        <div class="face inside"></div>
+        <div class="dark"></div>
+        <div class="thick"></div>
+      </div>
+    </div></div></div>
+
+    <!-- casilla de mail -->
+    <form id="form" autocomplete="on" novalidate>
+      <span class="l" style="left:51px;top:30px">Para:</span>
+      <span class="l" id="to" style="left:130px;top:30px">melinakenigsberg@gmail.com</span>
+      <button type="button" id="copy" aria-label="Copiar mail">
+        <svg viewBox="0 0 20 20" fill="none" stroke="#8d8d8d" stroke-width="1.6"><rect x="6.5" y="2.5" width="11" height="11" rx="1.5"/><path d="M3.5 6.5v10h10"/></svg><span id="copyt">Copiar</span>
+      </button>
+      <div class="hr" style="top:80px"></div>
+
+      <span class="l" style="left:51px;top:104px">De:</span>
+      <input id="f-from" type="email" name="email" style="left:106px;top:104px;width:479px;height:30px" aria-label="De">
+      <div class="hr" style="top:154px"></div>
+
+      <span class="l" style="left:51px;top:176px">Asunto:</span>
+      <input id="f-subj" type="text" name="asunto" style="left:152px;top:176px;width:433px;height:30px" aria-label="Asunto">
+      <div class="hr" style="top:226px"></div>
+
+      <span class="l" style="left:53px;top:238px">Mensaje</span>
+      <textarea id="f-msg" name="mensaje" style="left:53px;top:274px;width:532px;height:92px" aria-label="Mensaje"></textarea>
+
+      <button type="submit" id="send">Mandar</button>
+      <span id="msgst"></span>
+    </form>
+  </div>
+</div>
+<div id="spacer"></div>
+<script src="js/data.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>
